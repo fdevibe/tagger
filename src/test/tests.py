@@ -1,17 +1,32 @@
 #! /usr/bin/python
-# -*- compile-comand: "make -C ~/src/tagger/src/test" -*-
+# -*- compile-comand: "make -C /local/src/div/tagger/src/test" -*-
 
 import sys
 sys.path.append('..')
-from tagger import Tagger
+from tagger import *
 import unittest
 
-class TagsTest(unittest.TestCase):
+class TaggerTest(unittest.TestCase):
+    def setUp(self):
+        self.tagger = Tagger()
+
     def testFindWordsInSimpleString(self):
-        t = Tagger()
         self.assertEquals(
             ['public', 'static', 'void', 'main', 'String', 'args'],
-            t.parseString('  public static void main(String [] args) {'))
+            self.tagger.parseString(
+            '  public static void main(String [] args) {'))
+
+    def testIgnoredSymbols(self):
+        self.assertEquals(
+            [],
+            self.tagger.parseString('!"@#$%&&/{([)]=?+\\`"^~*\'-:.;,<>|'))
+
+class FileTaggerTest(unittest.TestCase):
+    def openFile(self):
+        FileTagger('a non-existing file')
+
+    def testAddNonExistingFile(self):
+        self.assertRaises(IOError, self.openFile)
 
 if __name__ == '__main__':
     unittest.main()

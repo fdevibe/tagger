@@ -2,7 +2,7 @@ import re
 
 class Tagger:
     def parseString(self, string):
-        tokens = re.split('[ \[\](){]*', string)
+        tokens = re.split('[\W]*', string)
         return self.removeBlanks(tokens)
 
     def removeBlanks(self, tokens):
@@ -11,3 +11,7 @@ class Tagger:
                 tokens.remove('')
         except ValueError:
             return tokens
+
+class FileTagger:
+    def __init__(self, filename):
+        self.fp = open(filename)
