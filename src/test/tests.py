@@ -13,13 +13,13 @@ class TaggerTest(unittest.TestCase):
     def testFindWordsInSimpleString(self):
         self.assertEquals(
             ['public', 'static', 'void', 'main', 'String', 'args'],
-            self.tagger.parseString(
+            self.tagger.getTokens(
             '  public static void main(String [] args) {'))
 
     def testIgnoredSymbols(self):
         self.assertEquals(
             [],
-            self.tagger.parseString('!"@#$%&&/{([)]=?+\\`"^~*\'-:.;,<>|'))
+            self.tagger.getTokens('!"@#$%&&/{([)]=?+\\`"^~*\'-:.;,<>|'))
 
 class FileTaggerTest(unittest.TestCase):
     def testAddNonExistingFile(self):

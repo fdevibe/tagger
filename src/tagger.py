@@ -1,7 +1,7 @@
 import re
 
 class Tagger:
-    def parseString(self, string):
+    def getTokens(self, string):
         tokens = re.split('[\W]*', string)
         return self.removeBlanks(tokens)
 
