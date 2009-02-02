@@ -22,11 +22,8 @@ class TaggerTest(unittest.TestCase):
             self.tagger.parseString('!"@#$%&&/{([)]=?+\\`"^~*\'-:.;,<>|'))
 
 class FileTaggerTest(unittest.TestCase):
-    def openFile(self):
-        FileTagger('a non-existing file')
-
     def testAddNonExistingFile(self):
-        self.assertRaises(IOError, self.openFile)
+        self.assertRaises(IOError, FileTagger, 'a non-existing file')
 
 if __name__ == '__main__':
     unittest.main()
