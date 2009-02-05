@@ -2,14 +2,14 @@ import re
 
 class Tagger:
     def getTokens(self, string):
-        tokens = re.split('[\W]*', string)
+        tokens = set(re.split('[\W]*', string))
         return self.removeBlanks(tokens)
 
     def removeBlanks(self, tokens):
         try:
             while True:
                 tokens.remove('')
-        except ValueError:
+        except KeyError:
             return tokens
 
 class FileTagger:

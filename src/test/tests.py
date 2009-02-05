@@ -1,5 +1,4 @@
 #! /usr/bin/python
-# -*- compile-comand: "make -C /local/src/div/tagger/src/test" -*-
 
 import sys
 sys.path.append('..')
@@ -11,15 +10,22 @@ class TaggerTest(unittest.TestCase):
         self.tagger = Tagger()
 
     def testFindWordsInSimpleString(self):
-        self.assertEquals(
-            ['public', 'static', 'void', 'main', 'String', 'args'],
-            self.tagger.getTokens(
+        actual = list(self.tagger.getTokens(
             '  public static void main(String [] args) {'))
+        actual.sort()
+        self.assertEquals(
+            ['String', 'args', 'main', 'public', 'static', 'void'],
+            actual)
 
     def testIgnoredSymbols(self):
         self.assertEquals(
-            [],
+            set(),
             self.tagger.getTokens('!"@#$%&&/{([)]=?+\\`"^~*\'-:.;,<>|'))
+
+    def testDuplicatedSymbols(self):
+        actual = list(self.tagger.getTokens('zoot zoot bar'))
+        actual.sort()
+        self.assertEquals(['bar', 'zoot'], actual)
 
 class FileTaggerTest(unittest.TestCase):
     def testAddNonExistingFile(self):
