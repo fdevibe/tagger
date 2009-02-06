@@ -4,6 +4,7 @@ import sys
 sys.path.append('..')
 from tagger import *
 import unittest
+from StringIO import StringIO
 
 class SimpleTaggerTest(unittest.TestCase):
     def setUp(self):
@@ -34,25 +35,12 @@ class SimpleTaggerTest(unittest.TestCase):
         self.assertRaises(
             IOError, self.tagger._openFile, 'a non-existing file')
 
-class TestFileDescriptor:
+class TestFileDescriptor(StringIO):
     def __init__(self, name):
         self.name = name
 
     def setContents(self, content):
-        self._lines = content
-        self._lines.reverse()
-
-    def readline(self):
-        return self._lines.pop()
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        try:
-            return self.readline()
-        except IndexError:
-            raise StopIteration
+        StringIO.__init__(self, content)
 
 class TaggerTestWithFile(unittest.TestCase):
     def setUp(self):
@@ -63,20 +51,20 @@ class TaggerTestWithFile(unittest.TestCase):
     def tearDown(self):
         __builtins__.__dict__['file'] = self.originalFile
 
-    def testTestFileDescriptor(self):
+    def testOpenFile(self):
         self.tagger._openFile('testFile')
         self.assertEquals('testFile', self.tagger._filePointer.name)
 
     def testTestReadSomeLines(self):
         self.tagger._openFile('testFile')
         self.tagger._filePointer.setContents(
-            ["#include <iostream>\n",
-             "\n",
-             "class Foo {\n",
-             "    void foo() {\n",
-             "        std::ostream << \"Foo.foo() called\" << std::endl;\n",
-             "    }\n",
-             "};\n"])
+"""#include <iostream>
+
+class Foo {
+    void foo() {
+        std::ostream << \"Foo.foo() called\" << std::endl;
+    }
+};""")
         self.assertEquals(
             {'Foo': [('testFile', 3), ('testFile', 5)],
              'called': [('testFile', 5)],
