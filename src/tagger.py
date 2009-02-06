@@ -12,5 +12,14 @@ class Tagger:
         except KeyError:
             return tokens
 
-    def processFile(self, filename):
+    def openFile(self, filename):
         self._filePointer = file(filename)
+
+    def processFile(self):
+        ret = {}
+        for lineNo, line in enumerate(self._filePointer):
+            for token in self.getTokens(line):
+                if not ret.has_key(token):
+                    ret[token] = []
+                ret[token].append((self._filePointer.name, lineNo + 1))
+        return ret
