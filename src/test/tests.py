@@ -5,7 +5,7 @@ sys.path.append('..')
 from tagger import *
 import unittest
 
-class TaggerTest(unittest.TestCase):
+class SimpleTaggerTest(unittest.TestCase):
     def setUp(self):
         self.tagger = Tagger()
 
@@ -27,9 +27,38 @@ class TaggerTest(unittest.TestCase):
         actual.sort()
         self.assertEquals(['bar', 'zoot'], actual)
 
-class FileTaggerTest(unittest.TestCase):
+    def testWhitespace(self):
+        self.assertEquals(
+            set(),
+            self.tagger.getTokens('      '))
+
     def testAddNonExistingFile(self):
-        self.assertRaises(IOError, FileTagger, 'a non-existing file')
+        self.assertRaises(
+            IOError, self.tagger.processFile, 'a non-existing file')
+
+class TestFileDescriptor:
+    def __init__(self, name):
+        self.name = name
+
+    def setContents(self, content):
+        self._lines = content
+        self._lines.reverse()
+
+    def readline(self):
+        return _lines.pop()
+
+class TaggerTestWithFile(unittest.TestCase):
+    def setUp(self):
+        self.tagger = Tagger()
+        self.originalFile = file
+        __builtins__.__dict__['file'] = TestFileDescriptor
+
+    def tearDown(self):
+        __builtins__.__dict__['file'] = self.originalFile
+
+    def testTestFileDescriptor(self):
+        self.tagger.processFile('testFile')
+        self.assertEquals('testFile', self.tagger._filePointer.name)
 
 if __name__ == '__main__':
     unittest.main()

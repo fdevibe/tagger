@@ -12,6 +12,5 @@ class Tagger:
         except KeyError:
             return tokens
 
-class FileTagger:
-    def __init__(self, filename):
-        self.fp = open(filename)
+    def processFile(self, filename):
+        self._filePointer = file(filename)
