@@ -32,7 +32,7 @@ class SimpleTaggerTest(unittest.TestCase):
 
     def testAddNonExistingFile(self):
         self.assertRaises(
-            IOError, self.tagger.openFile, 'a non-existing file')
+            IOError, self.tagger._openFile, 'a non-existing file')
 
 class TestFileDescriptor:
     def __init__(self, name):
@@ -64,11 +64,11 @@ class TaggerTestWithFile(unittest.TestCase):
         __builtins__.__dict__['file'] = self.originalFile
 
     def testTestFileDescriptor(self):
-        self.tagger.openFile('testFile')
+        self.tagger._openFile('testFile')
         self.assertEquals('testFile', self.tagger._filePointer.name)
 
     def testTestReadSomeLines(self):
-        self.tagger.openFile('testFile')
+        self.tagger._openFile('testFile')
         self.tagger._filePointer.setContents(
             ["#include <iostream>\n",
              "\n",
@@ -88,7 +88,47 @@ class TaggerTestWithFile(unittest.TestCase):
              'ostream': [('testFile', 5)],
              'std': [('testFile', 5)],
              'void': [('testFile', 4)]},
-            self.tagger.processFile())
+            self.tagger._processFile())
+
+    def testProcess(self):
+        assertTrue = self.assertTrue
+        failIf = self.failIf
+        class ProcessTestTagger(Tagger):
+            def __init__(self):
+                assertTrue('_openFile' in Tagger.__dict__)
+                assertTrue('_processFile' in Tagger.__dict__)
+                assertTrue('_closeFile' in Tagger.__dict__)
+                self.openFileCalled = False
+                self.processFileCalled = False
+                self.closeFileCalled = False
+            def _openFile(self, name):
+                failIf(self.openFileCalled)
+                failIf(self.processFileCalled)
+                failIf(self.closeFileCalled)
+                self.openFileCalled = True
+            def _processFile(self):
+                assertTrue(self.openFileCalled)
+                failIf(self.processFileCalled)
+                failIf(self.closeFileCalled)
+                self.processFileCalled = True
+            def _closeFile(self):
+                assertTrue(self.openFileCalled)
+                assertTrue(self.processFileCalled)
+                failIf(self.closeFileCalled)
+                self.closeFileCalled = True
+        t = ProcessTestTagger()
+        t.process('foo')
+
+    def testCloseFile(self):
+        class CloseFileDescriptor(TestFileDescriptor):
+            def __init__(self):
+                self.closeCalled = False
+            def close(self):
+                self.closeCalled = True
+        fd = CloseFileDescriptor()
+        self.tagger._filePointer = fd
+        self.tagger._closeFile()
+        self.assertTrue(fd.closeCalled)
 
 if __name__ == '__main__':
     unittest.main()

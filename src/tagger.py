@@ -6,16 +6,14 @@ class Tagger:
         return self.removeBlanks(tokens)
 
     def removeBlanks(self, tokens):
-        try:
+        if '' in tokens:
             tokens.remove('')
-        except KeyError:
-            pass
         return tokens
 
-    def openFile(self, filename):
+    def _openFile(self, filename):
         self._filePointer = file(filename)
 
-    def processFile(self):
+    def _processFile(self):
         ret = {}
         for lineNo, line in enumerate(self._filePointer):
             for token in self.getTokens(line):
@@ -23,3 +21,11 @@ class Tagger:
                     ret[token] = []
                 ret[token].append((self._filePointer.name, lineNo + 1))
         return ret
+
+    def _closeFile(self):
+        self._filePointer.close()
+
+    def process(self, filename):
+        self._openFile(filename)
+        self._processFile()
+        self._closeFile()
