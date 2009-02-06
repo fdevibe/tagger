@@ -7,10 +7,10 @@ class Tagger:
 
     def removeBlanks(self, tokens):
         try:
-            while True:
-                tokens.remove('')
+            tokens.remove('')
         except KeyError:
-            return tokens
+            pass
+        return tokens
 
     def openFile(self, filename):
         self._filePointer = file(filename)
