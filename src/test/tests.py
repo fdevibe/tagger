@@ -115,7 +115,7 @@ class TestFileDescriptor(StringIO):
     def setContents(self, content):
         StringIO.__init__(self, content)
 
-class TaggerTestWithFile(unittest.TestCase):
+class TaggerTestWithFile(OrderTestCase):
     def setUp(self):
         self.tagger = Tagger()
         self.originalFile = file
@@ -138,6 +138,7 @@ class Foo {
         std::ostream << \"Foo.foo() called\" << std::endl;
     }
 };""")
+        self.tagger._processFile()
         self.assertEquals(
             {'Foo': [('testFile', 3), ('testFile', 5)],
              'called': [('testFile', 5)],
@@ -149,36 +150,13 @@ class Foo {
              'ostream': [('testFile', 5)],
              'std': [('testFile', 5)],
              'void': [('testFile', 4)]},
-            self.tagger._processFile())
+             self.tagger._map)
 
     def testProcess(self):
-        assertTrue = self.assertTrue
-        failIf = self.failIf
-        class ProcessTestTagger(Tagger):
-            def __init__(self):
-                assertTrue('_openFile' in Tagger.__dict__)
-                assertTrue('_processFile' in Tagger.__dict__)
-                assertTrue('_closeFile' in Tagger.__dict__)
-                self.openFileCalled = False
-                self.processFileCalled = False
-                self.closeFileCalled = False
-            def _openFile(self, name):
-                failIf(self.openFileCalled)
-                failIf(self.processFileCalled)
-                failIf(self.closeFileCalled)
-                self.openFileCalled = True
-            def _processFile(self):
-                assertTrue(self.openFileCalled)
-                failIf(self.processFileCalled)
-                failIf(self.closeFileCalled)
-                self.processFileCalled = True
-            def _closeFile(self):
-                assertTrue(self.openFileCalled)
-                assertTrue(self.processFileCalled)
-                failIf(self.closeFileCalled)
-                self.closeFileCalled = True
-        t = ProcessTestTagger()
-        t.process('foo')
+        self.assertOrder(
+            self.tagger.process,
+            ['_openFile', '_processFile', '_closeFile'],
+            None)
 
     def testCloseFile(self):
         class CloseFileDescriptor(TestFileDescriptor):

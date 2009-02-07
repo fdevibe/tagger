@@ -14,13 +14,12 @@ class Tagger:
         self._filePointer = file(filename)
 
     def _processFile(self):
-        ret = {}
+        self._map = {}
         for lineNo, line in enumerate(self._filePointer):
             for token in self.getTokens(line):
-                if not ret.has_key(token):
-                    ret[token] = []
-                ret[token].append((self._filePointer.name, lineNo + 1))
-        return ret
+                if not self._map.has_key(token):
+                    self._map[token] = []
+                self._map[token].append((self._filePointer.name, lineNo + 1))
 
     def _closeFile(self):
         self._filePointer.close()
