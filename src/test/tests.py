@@ -40,6 +40,7 @@ class SimpleTaggerTest(unittest.TestCase):
 class TestFileDescriptor(StringIO):
     def __init__(self, name):
         self.name = name
+        StringIO.__init__(self, '')
 
     def setContents(self, content):
         StringIO.__init__(self, content)
@@ -86,6 +87,7 @@ class Foo {
             self.tagger.process,
             ['_openFile', '_processFile', '_closeFile'],
             None)
+        self.assertEquals({}, self.tagger.process('testFile'))
 
     def testCloseFile(self):
         class CloseFileDescriptor(TestFileDescriptor):
@@ -97,6 +99,15 @@ class Foo {
         self.tagger._filePointer = fd
         self.tagger._closeFile()
         self.assertTrue(fd.closeCalled)
+
+class TagCollectorTest(OrderTestCase):
+    def testInitSetsDB(self):
+        self.assertOrder(TagCollector.__init__, ['connect'], None)
+
+    def testInitSetsList(self):
+        l = ['foo', 'bar']
+        tc = TagCollector(l)
+        self.assertEquals(tc._fileList, l)
 
 if __name__ == '__main__':
     unittest.main()

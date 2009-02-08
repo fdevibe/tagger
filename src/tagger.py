@@ -1,6 +1,9 @@
 import re
 
 class Tagger:
+    def __init__(self):
+        self._map = None
+
     def getTokens(self, string):
         tokens = set(re.split('[\W]*', string))
         return self.removeBlanks(tokens)
@@ -28,3 +31,12 @@ class Tagger:
         self._openFile(filename)
         self._processFile()
         self._closeFile()
+        return self._map
+
+class TagCollector:
+    def __init__(self, fileList):
+        self._fileList = fileList
+        self.connect()
+
+    def connect(self):
+        pass
