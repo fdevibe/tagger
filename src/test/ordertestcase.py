@@ -25,15 +25,20 @@ class OrderTestCase(unittest.TestCase):
         def __call__(self, *args):
             self._methodList.append(self._calledName)
 
-    def assertOrder(self, methodToCall, methodList, *args, **kwargs):
-        theClass = methodToCall.im_class
-        self.assertExistence(theClass, methodList)
-        originalMethods = []
-        calledMethods = []
+    def _getOriginalMethods(self, theClass, methodList, calledMethods):
+        ret = []
         for method in methodList:
             (cl, member) = self._classMember(theClass, method)
-            originalMethods.append((cl, member))
+            ret.append((cl, member))
             cl.__dict__[method] = self.Overrider(method, calledMethods)
+        return ret
+
+    def _resetMethods(self, methodList, originalMethods):
+        for index, method in enumerate(methodList):
+            (cl, member) = originalMethods[index]
+            cl.__dict__[method] = member
+
+    def _callMethod(self, methodToCall, *args, **kwargs):
         if methodToCall.im_self is None:
             if methodToCall.im_func.func_name == '__init__':
                 methodToCall.im_class(*args, **kwargs)
@@ -41,9 +46,15 @@ class OrderTestCase(unittest.TestCase):
                 methodToCall(methodToCall.im_class(), *args, **kwargs)
         else:
             methodToCall(*args, **kwargs)
-        for index, method in enumerate(methodList):
-            (cl, member) = originalMethods[index]
-            cl.__dict__[method] = member
+
+    def assertOrder(self, methodToCall, methodList, *args, **kwargs):
+        theClass = methodToCall.im_class
+        self.assertExistence(theClass, methodList)
+        calledMethods = []
+        originalMethods = self._getOriginalMethods(
+            theClass, methodList, calledMethods)
+        self._callMethod(methodToCall, *args, **kwargs)
+        self._resetMethods(methodList, originalMethods)
         self.assertEquals(
             methodList,
             calledMethods,
