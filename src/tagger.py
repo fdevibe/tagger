@@ -34,9 +34,17 @@ class Tagger:
         return self._map
 
 class TagCollector:
-    def __init__(self, fileList):
+    def __init__(self, dbFile, fileList):
         self._fileList = fileList
-        self.connect()
+        self._dbFile = dbFile
+        self._connect()
 
-    def connect(self):
+    def _connect(self):
         pass
+
+    def _createSQL(self, method, files):
+        ret = []
+        for f in files:
+            ret.append("REPLACE INTO xref VALUES ('%s', '%s', %d)" \
+                       % (method, f[0], f[1]))
+        return ret

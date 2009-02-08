@@ -102,12 +102,28 @@ class Foo {
 
 class TagCollectorTest(OrderTestCase):
     def testInitSetsDB(self):
-        self.assertOrder(TagCollector.__init__, ['connect'], None)
+        self.assertOrder(TagCollector.__init__, ['_connect'], None, None)
 
     def testInitSetsList(self):
         l = ['foo', 'bar']
-        tc = TagCollector(l)
+        tc = TagCollector(None, l)
         self.assertEquals(tc._fileList, l)
+
+    def testCreateSQL(self):
+        tc = TagCollector(None, None)
+        method = 'foo'
+        files = [('bar', 13), ('baz', 54)]
+        self.assertEquals(
+            ["REPLACE INTO xref VALUES ('%s', '%s', %d)" \
+             % (method, files[0][0], files[0][1]),
+             "REPLACE INTO xref VALUES ('%s', '%s', %d)" \
+             % (method, files[1][0], files[1][1])],
+            tc._createSQL(method, files))
+
+    def testInitSetsDBFile(self):
+        dbFile = 'zoot'
+        tc = TagCollector(dbFile, None)
+        self.assertEquals(tc._dbFile, dbFile)
 
 if __name__ == '__main__':
     unittest.main()
