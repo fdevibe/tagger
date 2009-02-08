@@ -125,5 +125,17 @@ class TagCollectorTest(OrderTestCase):
         tc = TagCollector(dbFile, None)
         self.assertEquals(tc._dbFile, dbFile)
 
+    def testProcessFiles(self):
+        processed = []
+        class TestTC(TagCollector):
+            def __init__(self, fileList):
+                TagCollector.__init__(self, 'zoot', fileList)
+            def _processFile(self, fileName):
+                processed.append(fileName)
+        l = ['foo', 'bar']
+        tc = TestTC(l)
+        tc._processFiles()
+        self.assertEquals(l, processed)
+
 if __name__ == '__main__':
     unittest.main()

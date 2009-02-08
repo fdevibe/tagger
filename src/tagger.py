@@ -48,3 +48,10 @@ class TagCollector:
             ret.append("REPLACE INTO xref VALUES ('%s', '%s', %d)" \
                        % (method, f[0], f[1]))
         return ret
+
+    def _processFiles(self):
+        for f in self._fileList:
+            self._processFile(f)
+
+    def _processFile(self):
+        pass
