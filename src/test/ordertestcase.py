@@ -3,12 +3,12 @@ import unittest
 class OrderTestCase(unittest.TestCase):
     def _classMember(self, theClass, member):
         if member in theClass.__dict__:
-            return theClass.__dict__[member]
+            return (theClass, theClass.__dict__[member])
         if len(theClass.__bases__) > 0:
             for base in theClass.__bases__:
                 attempt = self._classMember(base, member)
                 if attempt is not None:
-                    return attempt
+                    return (base, attempt)
         return None
 
     def assertExistence(self, theClass, methodList):
@@ -31,9 +31,9 @@ class OrderTestCase(unittest.TestCase):
         originalMethods = []
         calledMethods = []
         for method in methodList:
-            # originalMethods.append(theClass.__dict__[method])
-            originalMethods.append(self._classMember(theClass, method))
-            theClass.__dict__[method] = self.Overrider(method, calledMethods)
+            (cl, member) = self._classMember(theClass, method)
+            originalMethods.append((cl, member))
+            cl.__dict__[method] = self.Overrider(method, calledMethods)
         if methodToCall.im_self is None:
             if methodToCall.im_func.func_name == '__init__':
                 methodToCall.im_class(*args, **kwargs)
@@ -42,7 +42,8 @@ class OrderTestCase(unittest.TestCase):
         else:
             methodToCall(*args, **kwargs)
         for index, method in enumerate(methodList):
-            theClass.__dict__[method] = originalMethods[index]
+            (cl, member) = originalMethods[index]
+            cl.__dict__[method] = member
         self.assertEquals(
             methodList,
             calledMethods,
@@ -127,6 +128,18 @@ class TestOrderTestCase(OrderTestCase):
         foo.bar()
         self.assertOrder(foo.bar, ['foo'])
         foo.bar()
+
+    def testParentsMethodsAreCorrectlyReset(self):
+        class B:
+            def b(self):
+                pass
+        class D(B):
+            def d(self):
+                self.b()
+        d = D()
+        self.failIf(D.__dict__.has_key('b'))
+        self.assertOrder(d.d, ['b'])
+        self.failIf(D.__dict__.has_key('b'))
 
 if __name__ == '__main__':
     unittest.main()
