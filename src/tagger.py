@@ -38,9 +38,11 @@ class TagCollector:
         self._fileList = fileList
         self._dbFile = dbFile
         self._connect()
+        self._processSQL(self._createTableSQL())
 
     def _connect(self):
-        pass
+        import sqlite3
+        self._connection = sqlite3.connect(self._dbFile)
 
     def _createSQL(self, method, files):
         ret = []
@@ -48,6 +50,13 @@ class TagCollector:
             ret.append("REPLACE INTO xref VALUES ('%s', '%s', %d)" \
                        % (method, f[0], f[1]))
         return ret
+
+    def _createTableSQL(self):
+        return "CREATE TABLE IF NOT EXISTS xref(" \
+               "name varchar(512), " \
+               "file varchar(512), " \
+               "line integer, " \
+               "unique (name, file, line))"
 
     def _processFiles(self):
         for f in self._fileList:
@@ -64,4 +73,8 @@ class TagCollector:
         self._processSQL(sql)
 
     def _processSQL(self, sql):
-        pass
+        cursor = self._connection.cursor()
+        for row in sql:
+            cursor.execute(row)
+        self._connection.commit()
+        cursor.close()

@@ -101,18 +101,26 @@ class Foo {
         self.tagger._closeFile()
         self.assertTrue(fd.closeCalled)
 
+class TestTagCollector(TagCollector):
+    def _connect(self):
+        pass
+    def _processSQL(self, sql):
+        pass
+
 class TagCollectorTest(OrderTestCase):
-    def testInitSetsDB(self):
+    def testInitCalls(self):
         self.assertOrder(
-            TagCollector.__init__, [TagCollector._connect], None, None)
+            TagCollector.__init__,
+            [TagCollector._connect, TagCollector._processSQL],
+            None, None)
 
     def testInitSetsList(self):
         l = ['foo', 'bar']
-        tc = TagCollector(None, l)
+        tc = TestTagCollector(None, l)
         self.assertEquals(tc._fileList, l)
 
     def testCreateSQL(self):
-        tc = TagCollector(None, None)
+        tc = TestTagCollector(None, None)
         method = 'foo'
         files = [('bar', 13), ('baz', 54)]
         self.assertEquals(
@@ -124,12 +132,12 @@ class TagCollectorTest(OrderTestCase):
 
     def testInitSetsDBFile(self):
         dbFile = 'zoot'
-        tc = TagCollector(dbFile, None)
+        tc = TestTagCollector(dbFile, None)
         self.assertEquals(tc._dbFile, dbFile)
 
     def testProcessFiles(self):
         processed = []
-        class TestTC(TagCollector):
+        class TestTC(TestTagCollector):
             def __init__(self, fileList):
                 TagCollector.__init__(self, 'zoot', fileList)
             def _processFile(self, fileName):
@@ -140,11 +148,20 @@ class TagCollectorTest(OrderTestCase):
         self.assertEquals(l, processed)
 
     def testProcessFile(self):
-        tc = TagCollector(None, None)
+        tc = TestTagCollector(None, None)
         self.assertOrder(
             tc._processFile,
             [Tagger.__init__, Tagger.process],
             None)
+
+    def testCreateTable(self):
+        self.assertEquals(
+            "CREATE TABLE IF NOT EXISTS xref(" \
+            "name varchar(512), " \
+            "file varchar(512), " \
+            "line integer, " \
+            "unique (name, file, line))",
+            TestTagCollector(None, None)._createTableSQL())
 
 class TestCollectTags(unittest.TestCase):
     def setUp(self):
@@ -164,9 +181,9 @@ class TestCollectTags(unittest.TestCase):
             def _openFile(self, fileName):
                 self._filePointer = TestFileDescriptor(fileName)
                 self._filePointer.setContents(files[fileName])
-        self.collector = TagCollector(None, self.files.keys())
-        self.tmpProcSQL = TagCollector._processSQL
-        TagCollector._processSQL = fakeProcSQL
+        self.collector = TestTagCollector(None, self.files.keys())
+        self.tmpProcSQL = TestTagCollector._processSQL
+        TestTagCollector._processSQL = fakeProcSQL
         self.tmpCreateSQL = TagCollector._createSQL
         TagCollector._createSQL = fakeCreateSQL
         self.tmpTagger = tagger.Tagger
@@ -174,7 +191,7 @@ class TestCollectTags(unittest.TestCase):
 
     def tearDown(self):
         tagger.Tagger = self.tmpTagger
-        TagCollector._processSQL = self.tmpProcSQL
+        TestTagCollector._processSQL = self.tmpProcSQL
         TagCollector._createSQL = self.tmpCreateSQL
 
     def testCollectTags(self):
