@@ -53,5 +53,6 @@ class TagCollector:
         for f in self._fileList:
             self._processFile(f)
 
-    def _processFile(self):
-        pass
+    def _processFile(self, fileName):
+        t = Tagger()
+        t.process()

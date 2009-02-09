@@ -85,7 +85,7 @@ class Foo {
     def testProcess(self):
         self.assertOrder(
             self.tagger.process,
-            ['_openFile', '_processFile', '_closeFile'],
+            [Tagger._openFile, Tagger._processFile, Tagger._closeFile],
             None)
         self.assertEquals({}, self.tagger.process('testFile'))
 
@@ -102,7 +102,8 @@ class Foo {
 
 class TagCollectorTest(OrderTestCase):
     def testInitSetsDB(self):
-        self.assertOrder(TagCollector.__init__, ['_connect'], None, None)
+        self.assertOrder(
+            TagCollector.__init__, [TagCollector._connect], None, None)
 
     def testInitSetsList(self):
         l = ['foo', 'bar']
@@ -136,6 +137,13 @@ class TagCollectorTest(OrderTestCase):
         tc = TestTC(l)
         tc._processFiles()
         self.assertEquals(l, processed)
+
+    def testProcessFile(self):
+        tc = TagCollector(None, None)
+        self.assertOrder(
+            tc._processFile,
+            [Tagger.__init__, Tagger.process],
+            None)
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,4 +1,6 @@
-all:
+all: test ordertest
+
+test:
 	python tests.py
 
 ordertest:
