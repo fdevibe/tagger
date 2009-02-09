@@ -55,4 +55,13 @@ class TagCollector:
 
     def _processFile(self, fileName):
         t = Tagger()
-        t.process()
+        occurrences = t.process(fileName)
+        if occurrences is None:
+            return
+        sql = []
+        for method, files in occurrences.items():
+            sql.extend(self._createSQL(method, files))
+        self._processSQL(sql)
+
+    def _processSQL(self, sql):
+        pass

@@ -7,6 +7,7 @@ import unittest
 from StringIO import StringIO
 from ordertestcase import OrderTestCase
 import __builtin__
+import tagger
 
 class SimpleTaggerTest(unittest.TestCase):
     def setUp(self):
@@ -144,6 +145,51 @@ class TagCollectorTest(OrderTestCase):
             tc._processFile,
             [Tagger.__init__, Tagger.process],
             None)
+
+class TestCollectTags(unittest.TestCase):
+    def setUp(self):
+        self.files = {'fnutti.c': "foo\nbar baz\nbar zoot",
+                      'blatti.c': "zoot\nbaz\nxyzzy foo"}
+        files = self.files
+        self.actual = []
+        actual = self.actual
+        def fakeProcSQL(self, sql):
+            actual.extend(sql)
+        def fakeCreateSQL(self, method, files):
+            ret = []
+            for (fileName, line) in files:
+                ret.append((method, fileName, int(line)))
+            return ret
+        class FakeTagger(tagger.Tagger):
+            def _openFile(self, fileName):
+                self._filePointer = TestFileDescriptor(fileName)
+                self._filePointer.setContents(files[fileName])
+        self.collector = TagCollector(None, self.files.keys())
+        self.tmpProcSQL = TagCollector._processSQL
+        TagCollector._processSQL = fakeProcSQL
+        self.tmpCreateSQL = TagCollector._createSQL
+        TagCollector._createSQL = fakeCreateSQL
+        self.tmpTagger = tagger.Tagger
+        tagger.Tagger = FakeTagger
+
+    def tearDown(self):
+        tagger.Tagger = self.tmpTagger
+        TagCollector._processSQL = self.tmpProcSQL
+        TagCollector._createSQL = self.tmpCreateSQL
+
+    def testCollectTags(self):
+        expected = [
+            ('bar', 'fnutti.c', 2),
+            ('bar', 'fnutti.c', 3),
+            ('foo', 'fnutti.c', 1),
+            ('baz', 'fnutti.c', 2),
+            ('zoot', 'fnutti.c', 3),
+            ('baz', 'blatti.c', 2),
+            ('foo', 'blatti.c', 3),
+            ('zoot', 'blatti.c', 1),
+            ('xyzzy', 'blatti.c', 3)]
+        self.collector._processFiles()
+        self.assertEquals(expected, self.actual)
 
 if __name__ == '__main__':
     unittest.main()
