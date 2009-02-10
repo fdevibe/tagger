@@ -52,15 +52,18 @@ class TagCollector:
         return ret
 
     def _createTableSQL(self):
-        return "CREATE TABLE IF NOT EXISTS xref(" \
-               "name varchar(512), " \
-               "file varchar(512), " \
-               "line integer, " \
-               "unique (name, file, line))"
+        return ["CREATE TABLE IF NOT EXISTS xref(" \
+                "name varchar(512), " \
+                "file varchar(512), " \
+                "line integer, " \
+                "unique (name, file, line))"]
 
     def _processFiles(self):
         for f in self._fileList:
-            self._processFile(f)
+            try:
+                self._processFile(f)
+            except IOError:
+                continue
 
     def _processFile(self, fileName):
         t = Tagger()
