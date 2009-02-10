@@ -106,6 +106,8 @@ class TestTagCollector(TagCollector):
         pass
     def _processSQL(self, sql):
         pass
+    def _processInsertSQL(self):
+        pass
 
 class TagCollectorTest(OrderTestCase):
     def testInitCalls(self):
@@ -162,49 +164,68 @@ class TagCollectorTest(OrderTestCase):
         tc._processFiles()
         sys.stderr = tmp
 
-    def testMapToSQL(self):
-        tc = TestTagCollector(None, None)
-        tc._files = {'foo.c': FileName('foo.c'), 'bar.c': FileName('bar.c')}
-        testMap = {
-            'zoot': [(tc._files['foo.c'], 2), (tc._files['bar.c'], 27)]}
-        self.assertEquals(
-            ["REPLACE INTO xref VALUES ('zoot', 'foo.c', 2)",
-             "REPLACE INTO xref VALUES ('zoot', 'bar.c', 27)"],
-            tc._mapToSQL(testMap))
-
 class TestCollectTags(unittest.TestCase):
     def setUp(self):
-        self.files = {'fnutti.c': "foo\nbar baz\nbar zoot",
-                      'blatti.c': "zoot\nbaz\nxyzzy foo"}
+        self.files = {'fnutti.c': "foo\nbar baz\nbar zoot"}
         files = self.files
-        self.actual = []
-        actual = self.actual
-        def fakeProcSQL(self, sql):
-            actual.extend(sql)
-        def fakeMapToSQL(self, theMap):
-            ret = []
-            for method, files in theMap.items():
-                for (fileName, line) in files:
-                    ret.append((method, fileName.name, int(line)))
-            return ret
         class FakeTagger(tagger.Tagger):
             def _openFile(self, fileName):
                 self._filePointer = TestFileDescriptor(fileName)
                 self._filePointer.setContents(files[fileName])
         self.collector = TestTagCollector(None, self.files.keys())
-        self.tmpProcSQL = TestTagCollector._processSQL
-        TestTagCollector._processSQL = fakeProcSQL
-        self.tmpMapToSQL = TagCollector._mapToSQL
-        TagCollector._mapToSQL = fakeMapToSQL
         self.tmpTagger = tagger.Tagger
         tagger.Tagger = FakeTagger
 
     def tearDown(self):
         tagger.Tagger = self.tmpTagger
-        TestTagCollector._processSQL = self.tmpProcSQL
-        TagCollector._mapToSQL = self.tmpMapToSQL
 
-    def testCollectTags(self):
+    def testProcessFileAddsToInternalMap(self):
+        self.collector._processFile('fnutti.c')
+        self.assertEquals(
+            {'bar': [(self.collector._files['fnutti.c'], 2),
+                     (self.collector._files['fnutti.c'], 3)],
+             'foo': [(self.collector._files['fnutti.c'], 1)],
+             'baz': [(self.collector._files['fnutti.c'], 2)],
+             'zoot': [(self.collector._files['fnutti.c'], 3)]},
+            self.collector._map)
+
+class FakeCursor:
+    def __init__(self, connection):
+        self.connection = connection
+    def execute(self, what, *args):
+        self.connection.executed.append(args)
+    def close(self):
+        pass
+
+class FakeConnection:
+    def __init__(self):
+        self.executed = []
+    def cursor(self):
+        return FakeCursor(self)
+    def commit(self):
+        pass
+
+class TestDB(unittest.TestCase):
+    def setUp(self):
+        def fakeConnect(self):
+            self._connection = FakeConnection()
+        self.tmpConnect = TagCollector._connect
+        TagCollector._connect = fakeConnect
+
+        self.files = {'fnutti.c': "foo\nbar baz\nbar zoot",
+                      'blatti.c': "zoot\nbaz\nxyzzy foo"}
+        files = self.files
+        class FakeTagger(tagger.Tagger):
+            def _openFile(self, fileName):
+                self._filePointer = TestFileDescriptor(fileName)
+                self._filePointer.setContents(files[fileName])
+        self.tmpTagger = tagger.Tagger
+        tagger.Tagger = FakeTagger
+
+    def tearDown(self):
+        TagCollector._connect = self.tmpConnect
+
+    def testInsert(self):
         expected = [
             ('bar', 'fnutti.c', 2),
             ('bar', 'fnutti.c', 3),
@@ -214,19 +235,13 @@ class TestCollectTags(unittest.TestCase):
             ('baz', 'blatti.c', 2),
             ('foo', 'blatti.c', 3),
             ('zoot', 'blatti.c', 1),
-            ('xyzzy', 'blatti.c', 3)].sort()
-        self.collector._processFiles()
-        self.assertEquals(expected, self.actual.sort())
-
-    def testProcessFileAddsToInternalMap(self):
-        self.collector._processFile('fnutti.c', [])
+            ('xyzzy', 'blatti.c', 3)]
+        tc = TagCollector(None, None)
+        tc._fileList = self.files
+        tc._processFiles()
         self.assertEquals(
-            {'bar': [(self.collector._files['fnutti.c'], 2),
-                     (self.collector._files['fnutti.c'], 3)],
-             'foo': [(self.collector._files['fnutti.c'], 1)],
-             'baz': [(self.collector._files['fnutti.c'], 2)],
-             'zoot': [(self.collector._files['fnutti.c'], 3)]},
-            self.collector._map)
+            expected.sort(),
+            tc._connection.executed.sort())
 
 if __name__ == '__main__':
     unittest.main()

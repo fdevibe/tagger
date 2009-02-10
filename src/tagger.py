@@ -39,7 +39,6 @@ class FileName:
         self.name = name
 
 class TagCollector:
-
     def __init__(self, dbFile, fileList):
         self._fileList = fileList
         self._dbFile = dbFile
@@ -52,14 +51,6 @@ class TagCollector:
         import sqlite3
         self._connection = sqlite3.connect(self._dbFile)
 
-    def _mapToSQL(self, theMap):
-        ret = []
-        for method, files in theMap.items():
-            for f in files:
-                ret.append("REPLACE INTO xref VALUES ('%s', '%s', %d)" \
-                           % (method, f[0].name, f[1]))
-        return ret
-
     def _createTableSQL(self):
         return ["CREATE TABLE IF NOT EXISTS xref(" \
                 "name varchar(512), " \
@@ -68,16 +59,15 @@ class TagCollector:
                 "unique (name, file, line))"]
 
     def _processFiles(self):
-        sql = []
         for f in self._fileList:
             try:
-                self._processFile(f, sql)
+                self._processFile(f)
             except IOError:
                 sys.stderr.write("Warning: %s: No such file\n" % f)
                 continue
-        self._processSQL(self._mapToSQL(self._map))
+        self._processInsertSQL()
 
-    def _processFile(self, fileName, sql = None):
+    def _processFile(self, fileName):
         t = Tagger()
         occurrences = t.process(fileName)
         if occurrences is None:
@@ -96,5 +86,15 @@ class TagCollector:
         cursor = self._connection.cursor()
         for row in sql:
             cursor.execute(row)
+        self._connection.commit()
+        cursor.close()
+
+    def _processInsertSQL(self):
+        cursor = self._connection.cursor()
+        for method, files in self._map.items():
+            for fileName, line in files:
+                cursor.execute(
+                    "INSERT INTO xref VALUES (?, ?, ?)",
+                    method, fileName.name, line)
         self._connection.commit()
         cursor.close()
