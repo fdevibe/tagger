@@ -165,7 +165,13 @@ class TagCollectorTest(OrderTestCase):
 
     def testNonExistingFileShouldntRaiseIOError(self):
         tc = TestTagCollector(None, ['non-existing file'])
+        class DevNull:
+            def write(self, what):
+                pass
+        tmp = sys.stderr
+        sys.stderr = DevNull()
         tc._processFiles()
+        sys.stderr = tmp
 
 class TestCollectTags(unittest.TestCase):
     def setUp(self):
@@ -211,6 +217,16 @@ class TestCollectTags(unittest.TestCase):
             ('xyzzy', 'blatti.c', 3)]
         self.collector._processFiles()
         self.assertEquals(expected, self.actual)
+
+    def testProcessFileAddsToInternalMap(self):
+        self.collector._processFile('fnutti.c')
+        self.assertEquals(
+            {'bar': [(self.collector._files['fnutti.c'], 2),
+                     (self.collector._files['fnutti.c'], 3)],
+             'foo': [(self.collector._files['fnutti.c'], 1)],
+             'baz': [(self.collector._files['fnutti.c'], 2)],
+             'zoot': [(self.collector._files['fnutti.c'], 3)]},
+            self.collector._map)
 
 if __name__ == '__main__':
     unittest.main()

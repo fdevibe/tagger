@@ -34,12 +34,19 @@ class Tagger:
         self._closeFile()
         return self._map
 
+class FileName:
+    def __init__(self, name):
+        self.name = name
+
 class TagCollector:
+
     def __init__(self, dbFile, fileList):
         self._fileList = fileList
         self._dbFile = dbFile
         self._connect()
         self._processSQL(self._createTableSQL())
+        self._map = {}
+        self._files = {}
 
     def _connect(self):
         import sqlite3
@@ -72,10 +79,18 @@ class TagCollector:
         occurrences = t.process(fileName)
         if occurrences is None:
             return
+        self._files[fileName] = FileName(fileName)
         sql = []
         for method, files in occurrences.items():
+            self._addToMap(method, files)
             sql.extend(self._createSQL(method, files))
         self._processSQL(sql)
+
+    def _addToMap(self, method, files):
+        if not self._map.has_key(method):
+            self._map[method] = []
+        for f, line in files:
+            self._map[method].append((self._files[f], line))
 
     def _processSQL(self, sql):
         cursor = self._connection.cursor()
