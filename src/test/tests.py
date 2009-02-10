@@ -119,17 +119,6 @@ class TagCollectorTest(OrderTestCase):
         tc = TestTagCollector(None, l)
         self.assertEquals(tc._fileList, l)
 
-    def testCreateSQL(self):
-        tc = TestTagCollector(None, None)
-        method = 'foo'
-        files = [('bar', 13), ('baz', 54)]
-        self.assertEquals(
-            ["REPLACE INTO xref VALUES ('%s', '%s', %d)" \
-             % (method, files[0][0], files[0][1]),
-             "REPLACE INTO xref VALUES ('%s', '%s', %d)" \
-             % (method, files[1][0], files[1][1])],
-            tc._createSQL(method, files))
-
     def testInitSetsDBFile(self):
         dbFile = 'zoot'
         tc = TestTagCollector(dbFile, None)
@@ -140,7 +129,7 @@ class TagCollectorTest(OrderTestCase):
         class TestTC(TestTagCollector):
             def __init__(self, fileList):
                 TagCollector.__init__(self, 'zoot', fileList)
-            def _processFile(self, fileName):
+            def _processFile(self, fileName, sql = None):
                 processed.append(fileName)
         l = ['foo', 'bar']
         tc = TestTC(l)
@@ -173,6 +162,16 @@ class TagCollectorTest(OrderTestCase):
         tc._processFiles()
         sys.stderr = tmp
 
+    def testMapToSQL(self):
+        tc = TestTagCollector(None, None)
+        tc._files = {'foo.c': FileName('foo.c'), 'bar.c': FileName('bar.c')}
+        testMap = {
+            'zoot': [(tc._files['foo.c'], 2), (tc._files['bar.c'], 27)]}
+        self.assertEquals(
+            ["REPLACE INTO xref VALUES ('zoot', 'foo.c', 2)",
+             "REPLACE INTO xref VALUES ('zoot', 'bar.c', 27)"],
+            tc._mapToSQL(testMap))
+
 class TestCollectTags(unittest.TestCase):
     def setUp(self):
         self.files = {'fnutti.c': "foo\nbar baz\nbar zoot",
@@ -182,10 +181,11 @@ class TestCollectTags(unittest.TestCase):
         actual = self.actual
         def fakeProcSQL(self, sql):
             actual.extend(sql)
-        def fakeCreateSQL(self, method, files):
+        def fakeMapToSQL(self, theMap):
             ret = []
-            for (fileName, line) in files:
-                ret.append((method, fileName, int(line)))
+            for method, files in theMap.items():
+                for (fileName, line) in files:
+                    ret.append((method, fileName.name, int(line)))
             return ret
         class FakeTagger(tagger.Tagger):
             def _openFile(self, fileName):
@@ -194,15 +194,15 @@ class TestCollectTags(unittest.TestCase):
         self.collector = TestTagCollector(None, self.files.keys())
         self.tmpProcSQL = TestTagCollector._processSQL
         TestTagCollector._processSQL = fakeProcSQL
-        self.tmpCreateSQL = TagCollector._createSQL
-        TagCollector._createSQL = fakeCreateSQL
+        self.tmpMapToSQL = TagCollector._mapToSQL
+        TagCollector._mapToSQL = fakeMapToSQL
         self.tmpTagger = tagger.Tagger
         tagger.Tagger = FakeTagger
 
     def tearDown(self):
         tagger.Tagger = self.tmpTagger
         TestTagCollector._processSQL = self.tmpProcSQL
-        TagCollector._createSQL = self.tmpCreateSQL
+        TagCollector._mapToSQL = self.tmpMapToSQL
 
     def testCollectTags(self):
         expected = [
@@ -214,12 +214,12 @@ class TestCollectTags(unittest.TestCase):
             ('baz', 'blatti.c', 2),
             ('foo', 'blatti.c', 3),
             ('zoot', 'blatti.c', 1),
-            ('xyzzy', 'blatti.c', 3)]
+            ('xyzzy', 'blatti.c', 3)].sort()
         self.collector._processFiles()
-        self.assertEquals(expected, self.actual)
+        self.assertEquals(expected, self.actual.sort())
 
     def testProcessFileAddsToInternalMap(self):
-        self.collector._processFile('fnutti.c')
+        self.collector._processFile('fnutti.c', [])
         self.assertEquals(
             {'bar': [(self.collector._files['fnutti.c'], 2),
                      (self.collector._files['fnutti.c'], 3)],

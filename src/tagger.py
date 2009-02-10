@@ -52,11 +52,12 @@ class TagCollector:
         import sqlite3
         self._connection = sqlite3.connect(self._dbFile)
 
-    def _createSQL(self, method, files):
+    def _mapToSQL(self, theMap):
         ret = []
-        for f in files:
-            ret.append("REPLACE INTO xref VALUES ('%s', '%s', %d)" \
-                       % (method, f[0], f[1]))
+        for method, files in theMap.items():
+            for f in files:
+                ret.append("REPLACE INTO xref VALUES ('%s', '%s', %d)" \
+                           % (method, f[0].name, f[1]))
         return ret
 
     def _createTableSQL(self):
@@ -67,24 +68,23 @@ class TagCollector:
                 "unique (name, file, line))"]
 
     def _processFiles(self):
+        sql = []
         for f in self._fileList:
             try:
-                self._processFile(f)
+                self._processFile(f, sql)
             except IOError:
                 sys.stderr.write("Warning: %s: No such file\n" % f)
                 continue
+        self._processSQL(self._mapToSQL(self._map))
 
-    def _processFile(self, fileName):
+    def _processFile(self, fileName, sql = None):
         t = Tagger()
         occurrences = t.process(fileName)
         if occurrences is None:
             return
         self._files[fileName] = FileName(fileName)
-        sql = []
         for method, files in occurrences.items():
             self._addToMap(method, files)
-            sql.extend(self._createSQL(method, files))
-        self._processSQL(sql)
 
     def _addToMap(self, method, files):
         if not self._map.has_key(method):
