@@ -1,4 +1,5 @@
 import re
+import sys
 
 class Tagger:
     def __init__(self):
@@ -63,6 +64,7 @@ class TagCollector:
             try:
                 self._processFile(f)
             except IOError:
+                sys.stderr.write("Warning: %s: No such file\n" % f)
                 continue
 
     def _processFile(self, fileName):
