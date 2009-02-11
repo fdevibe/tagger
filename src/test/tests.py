@@ -202,7 +202,9 @@ class FakeCursor:
     def __init__(self, connection):
         self.connection = connection
     def execute(self, what, *args):
-        self.connection.executed.append(args)
+        if len(args) == 0:
+            return
+        self.connection.executed.append(*args)
     def close(self):
         pass
 
@@ -235,22 +237,34 @@ class TestDB(unittest.TestCase):
         TagCollector._connect = self.tmpConnect
 
     def testInsert(self):
+        FileName.count = 1
+        Symbol.count = 1
         expected = [
-            ('bar', 'fnutti.c', 2),
-            ('bar', 'fnutti.c', 3),
-            ('foo', 'fnutti.c', 1),
-            ('baz', 'fnutti.c', 2),
-            ('zoot', 'fnutti.c', 3),
-            ('baz', 'blatti.c', 2),
-            ('foo', 'blatti.c', 3),
-            ('zoot', 'blatti.c', 1),
-            ('xyzzy', 'blatti.c', 3)]
+            (1, 'bar'),
+            (2, 'foo'),
+            (3, 'baz'),
+            (4, 'zoot'),
+            (5, 'xyzzy'),
+            (1, 'fnutti.c'),
+            (2, 'blatti.c'),
+            (1, 1, 2),
+            (1, 1, 3),
+            (2, 1, 1),
+            (3, 1, 2),
+            (4, 1, 3),
+            (3, 2, 2),
+            (2, 2, 3),
+            (4, 2, 1),
+            (5, 2, 3)]
+        expected.sort()
         tc = TagCollector(None, None)
         tc._fileList = self.files
         tc._processFiles()
+        actual = tc._connection.executed
+        actual.sort()
         self.assertEquals(
-            expected.sort(),
-            tc._connection.executed.sort())
+            expected,
+            actual)
 
 if __name__ == '__main__':
     unittest.main()
