@@ -1,5 +1,6 @@
 import re
 import sys
+import sqlite3
 
 class Tagger:
     def __init__(self):
@@ -43,20 +44,20 @@ class TagCollector:
         self._fileList = fileList
         self._dbFile = dbFile
         self._connect()
-        self._processSQL(self._createTableSQL())
+        self._processSQL(self._createTableSQL(64, 128))
         self._map = {}
         self._files = {}
 
     def _connect(self):
-        import sqlite3
         self._connection = sqlite3.connect(self._dbFile)
 
-    def _createTableSQL(self):
+    def _createTableSQL(self, symbolLength, fileNameLength):
         return ["CREATE TABLE IF NOT EXISTS xref(" \
-                "name varchar(512), " \
-                "file varchar(512), " \
+                "symbol varchar(%d), " \
+                "file varchar(%d), " \
                 "line integer, " \
-                "unique (name, file, line))"]
+                "unique (symbol, file, line))" \
+                % (symbolLength, fileNameLength)]
 
     def _processFiles(self):
         for f in self._fileList:
@@ -68,19 +69,21 @@ class TagCollector:
         self._processInsertSQL()
 
     def _processFile(self, fileName):
+        if self._files.has_key(fileName):
+            return
+        self._files[fileName] = FileName(fileName)
         t = Tagger()
         occurrences = t.process(fileName)
         if occurrences is None:
             return
-        self._files[fileName] = FileName(fileName)
-        for method, files in occurrences.items():
-            self._addToMap(method, files)
+        for symbol, files in occurrences.items():
+            self._addToMap(symbol, files)
 
-    def _addToMap(self, method, files):
-        if not self._map.has_key(method):
-            self._map[method] = []
+    def _addToMap(self, symbol, files):
+        if not self._map.has_key(symbol):
+            self._map[symbol] = []
         for f, line in files:
-            self._map[method].append((self._files[f], line))
+            self._map[symbol].append((self._files[f], line))
 
     def _processSQL(self, sql):
         cursor = self._connection.cursor()
@@ -90,11 +93,12 @@ class TagCollector:
         cursor.close()
 
     def _processInsertSQL(self):
+        print 'Processing SQL... (%s symbols)' % len(self._map)
         cursor = self._connection.cursor()
-        for method, files in self._map.items():
+        for symbol, files in self._map.items():
             for fileName, line in files:
                 cursor.execute(
                     "INSERT INTO xref VALUES (?, ?, ?)",
-                    method, fileName.name, line)
+                    (symbol, fileName.name, line))
         self._connection.commit()
         cursor.close()

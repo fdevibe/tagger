@@ -131,7 +131,7 @@ class TagCollectorTest(OrderTestCase):
         class TestTC(TestTagCollector):
             def __init__(self, fileList):
                 TagCollector.__init__(self, 'zoot', fileList)
-            def _processFile(self, fileName, sql = None):
+            def _processFile(self, fileName):
                 processed.append(fileName)
         l = ['foo', 'bar']
         tc = TestTC(l)
@@ -145,14 +145,18 @@ class TagCollectorTest(OrderTestCase):
             [Tagger.__init__, Tagger.process],
             None)
 
+    def xtestVerifyNoDuplicateFiles(self):
+        tc = TestTagCollector(None, ['foo', 'foo'])
+        self.assertOrder(tc._processFile, [Tagger.__init__], 'foo')
+
     def testCreateTable(self):
         self.assertEquals(
             ["CREATE TABLE IF NOT EXISTS xref(" \
-             "name varchar(512), " \
-             "file varchar(512), " \
+             "symbol varchar(64), " \
+             "file varchar(128), " \
              "line integer, " \
-             "unique (name, file, line))"],
-            TestTagCollector(None, None)._createTableSQL())
+             "unique (symbol, file, line))"],
+            TestTagCollector(None, None)._createTableSQL(64, 128))
 
     def testNonExistingFileShouldntRaiseIOError(self):
         tc = TestTagCollector(None, ['non-existing file'])
