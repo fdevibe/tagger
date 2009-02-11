@@ -52,12 +52,17 @@ class TagCollector:
         self._connection = sqlite3.connect(self._dbFile)
 
     def _createTableSQL(self, symbolLength, fileNameLength):
-        return ["CREATE TABLE IF NOT EXISTS xref(" \
-                "symbol varchar(%d), " \
-                "file varchar(%d), " \
-                "line integer, " \
-                "unique (symbol, file, line))" \
-                % (symbolLength, fileNameLength)]
+        return ["CREATE TABLE IF NOT EXISTS symbols(" \
+                "ID INTEGER PRIMARY KEY, " \
+                "symbol varchar(%d))" % symbolLength,
+                "CREATE TABLE IF NOT EXISTS files(" \
+                "ID INTEGER PRIMARY KEY, " \
+                "file varchar(%d))" % fileNameLength,
+                "CREATE TABLE IF NOT EXISTS xref(" \
+                "symbol INTEGER, " \
+                "file INTEGER, " \
+                "line INTEGER)"
+                ]
 
     def _processFiles(self):
         for f in self._fileList:

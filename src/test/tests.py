@@ -151,11 +151,16 @@ class TagCollectorTest(OrderTestCase):
 
     def testCreateTable(self):
         self.assertEquals(
-            ["CREATE TABLE IF NOT EXISTS xref(" \
-             "symbol varchar(64), " \
-             "file varchar(128), " \
-             "line integer, " \
-             "unique (symbol, file, line))"],
+            ["CREATE TABLE IF NOT EXISTS symbols(" \
+             "ID INTEGER PRIMARY KEY, " \
+             "symbol varchar(64))",
+             "CREATE TABLE IF NOT EXISTS files(" \
+             "ID INTEGER PRIMARY KEY, " \
+             "file varchar(128))",
+             "CREATE TABLE IF NOT EXISTS xref(" \
+             "symbol INTEGER, " \
+             "file INTEGER, " \
+             "line INTEGER)"],
             TestTagCollector(None, None)._createTableSQL(64, 128))
 
     def testNonExistingFileShouldntRaiseIOError(self):
